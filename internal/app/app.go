@@ -23,12 +23,14 @@ func Run() error {
 	}
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
-
 	updates := bot.GetUpdatesChan(u)
 
 	for update := range updates {
 		if update.Message != nil { // If we got a message
-			FindMessage(update, bot, c)
+			err := FindMessage(update, bot, c)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 	return nil

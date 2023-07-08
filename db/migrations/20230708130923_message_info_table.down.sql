@@ -1,0 +1,3 @@
+BEGIN;
+DROP TABLE user_info CASCADE;
+END;

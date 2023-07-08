@@ -1,0 +1,5 @@
+all:
+jet:
+	jet -dsn="postgres://postgres:password@localhost:5432/postgres?sslmode=disable" -schema=public -path=./internal/pkg/repositories/gen
+up:
+	migrate -database "postgres://postgres:password@localhost:5432/postgres?sslmode=disable" -path ./db/migrations up

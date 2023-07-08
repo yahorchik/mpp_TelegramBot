@@ -1,12 +1,13 @@
 package main
 
 import (
+	"context"
+	"github.com/yahorchik/mpp_TelegramBot/internal/app"
 	"log"
-	"mpp_TelegramBot/internal/app"
 )
 
 func main() {
-	if err := app.Run(); err != nil {
+	if err := app.Run(context.Background()); err != nil {
 		log.Fatal(err)
 	}
 }

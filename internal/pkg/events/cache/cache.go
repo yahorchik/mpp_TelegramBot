@@ -5,6 +5,7 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/patrickmn/go-cache"
+	"github.com/yahorchik/mpp_TelegramBot/internal/database"
 	lc "github.com/yahorchik/mpp_TelegramBot/internal/pkg/cache"
 	"github.com/yahorchik/mpp_TelegramBot/internal/pkg/repositories/gen/postgres/public/model"
 	"github.com/yahorchik/mpp_TelegramBot/internal/pkg/repositories/gen/postgres/public/table"
@@ -39,8 +40,22 @@ func ShowMessage(id int64, bot *tgbotapi.BotAPI) error {
 			MessageText: proto.String(minfo.Text),
 			MessageDate: &tm,
 		}
-		log.Println(table.MessageInfo.INSERT(table.MessageInfo.AllColumns).MODELS(md).DebugSql())
-
+		md1 := &model.UserInfo{
+			UserID:        strconv.FormatInt(minfo.User, 10),
+			UserNickname:  nil,
+			UserFirstname: nil,
+			UserLastname:  nil,
+		}
+		stmt1 := table.UserInfo.INSERT(table.UserInfo.AllColumns).MODEL(md1)
+		stmt := table.MessageInfo.INSERT(table.MessageInfo.AllColumns).MODEL(md)
+		_, err = stmt1.Exec(database.DB)
+		if err != nil {
+			log.Println(err)
+		}
+		_, err = stmt.Exec(database.DB)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 	return nil
 }

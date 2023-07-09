@@ -19,7 +19,7 @@ func Run(ctx context.Context) error {
 	database.ConnectDB(ctx)
 	bot, err := b.InitBot(config.Cfg.BotToken)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60

@@ -5,10 +5,9 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/patrickmn/go-cache"
-	"github.com/yahorchik/mpp_TelegramBot/internal/database"
 	lc "github.com/yahorchik/mpp_TelegramBot/internal/pkg/cache"
+	rep "github.com/yahorchik/mpp_TelegramBot/internal/pkg/repositories"
 	"github.com/yahorchik/mpp_TelegramBot/internal/pkg/repositories/gen/postgres/public/model"
-	"github.com/yahorchik/mpp_TelegramBot/internal/pkg/repositories/gen/postgres/public/table"
 	"google.golang.org/protobuf/proto"
 	"log"
 	"os/exec"
@@ -16,10 +15,27 @@ import (
 	"time"
 )
 
-func ShowMessage(id int64, bot *tgbotapi.BotAPI) error {
+func ShowMessage(id int64, update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
+	//	userID := make([]string, 1)
+	//	messageText := make([]string, 1)
+	//	messageDate := make([]time.Time, 1)
+	var modelsMessages []*model.MessageInfo
+	//	var modelsUser model.UserInfo
 	var msg tgbotapi.MessageConfig
+	modelUser := &model.UserInfo{
+		UserID:        strconv.FormatInt(id, 10),
+		UserNickname:  &update.Message.Chat.UserName,
+		UserFirstname: &update.Message.Chat.FirstName,
+		UserLastname:  &update.Message.Chat.LastName,
+	}
+	if lc.Cache.ItemCount() == 0 {
+		msg = tgbotapi.NewMessage(id, "Сохраненных сообщений нет.")
+	}
 	msg = tgbotapi.NewMessage(id, "История сохраненных сообщений:")
-	bot.Send(msg)
+	_, err := bot.Send(msg)
+	if err != nil {
+		log.Fatal(err)
+	}
 	var msgtext string
 	for _, item := range lc.Cache.Items() {
 		minfo, ok := item.Object.(lc.Message)
@@ -40,22 +56,14 @@ func ShowMessage(id int64, bot *tgbotapi.BotAPI) error {
 			MessageText: proto.String(minfo.Text),
 			MessageDate: &tm,
 		}
-		md1 := &model.UserInfo{
-			UserID:        strconv.FormatInt(minfo.User, 10),
-			UserNickname:  nil,
-			UserFirstname: nil,
-			UserLastname:  nil,
-		}
-		stmt1 := table.UserInfo.INSERT(table.UserInfo.AllColumns).MODEL(md1)
-		stmt := table.MessageInfo.INSERT(table.MessageInfo.AllColumns).MODEL(md)
-		_, err = stmt1.Exec(database.DB)
-		if err != nil {
-			log.Println(err)
-		}
-		_, err = stmt.Exec(database.DB)
-		if err != nil {
-			log.Println(err)
-		}
+		modelsMessages = append(modelsMessages, md)
+	}
+	err = rep.SendToDB(modelUser, modelsMessages)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for key, _ := range lc.Cache.Items() {
+		lc.Cache.Delete(key)
 	}
 	return nil
 }

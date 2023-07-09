@@ -35,7 +35,10 @@ func FindMessage(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 			log.Fatal(err)
 		}
 		msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Message saved.")
-		bot.Send(msg)
+		_, err = bot.Send(msg)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	return nil
 }
@@ -46,7 +49,7 @@ func findCommand(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 	case "start":
 		start.StartMessage(update.Message.Chat.ID, bot)
 	case "cache":
-		err := eCache.ShowMessage(update.Message.Chat.ID, bot)
+		err := eCache.ShowMessage(update.Message.Chat.ID, update, bot)
 		if err != nil {
 			log.Fatal(err)
 		}

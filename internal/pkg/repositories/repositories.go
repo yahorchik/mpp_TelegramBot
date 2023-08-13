@@ -1,11 +1,11 @@
 package repositories
 
 import (
+	"fmt"
 	"github.com/go-jet/jet/v2/postgres"
 	"github.com/yahorchik/mpp_TelegramBot/internal/database"
 	"github.com/yahorchik/mpp_TelegramBot/internal/pkg/repositories/gen/postgres/public/model"
 	"github.com/yahorchik/mpp_TelegramBot/internal/pkg/repositories/gen/postgres/public/table"
-	"log"
 )
 
 func SendToDB(userinfo *model.UserInfo, msginfo []*model.MessageInfo) error {
@@ -20,11 +20,24 @@ func SendToDB(userinfo *model.UserInfo, msginfo []*model.MessageInfo) error {
 	stmt := table.MessageInfo.INSERT(table.MessageInfo.AllColumns).MODELS(msginfo)
 	_, err := stmt1.Exec(database.DB)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 	_, err = stmt.Exec(database.DB)
 	if err != nil {
-		log.Println(err)
+		return err
+	}
+	return nil
+}
+
+func GetForDB() error {
+	var m []model.UserInfo
+	stmt := table.UserInfo.SELECT(table.UserInfo.UserNickname)
+	err := stmt.Query(database.DB, &m)
+	if err != nil {
+		return err
+	}
+	for _, info := range m {
+		fmt.Println(*info.UserNickname)
 	}
 	return nil
 }

@@ -5,7 +5,6 @@ import (
 	eCache "github.com/yahorchik/mpp_TelegramBot/internal/pkg/events/cache"
 	"github.com/yahorchik/mpp_TelegramBot/internal/pkg/events/start"
 	"github.com/yahorchik/mpp_TelegramBot/internal/pkg/repositories"
-	"log"
 )
 
 type Message struct {
@@ -17,7 +16,7 @@ type Message struct {
 func InitBot(token string) (*tgbotapi.BotAPI, error) {
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
-		log.Println(err)
+		return bot, err
 	}
 	bot.Debug = false
 	return bot, nil
@@ -79,7 +78,6 @@ func findCommand(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 			return err
 		}
 		repositories.GetForDB()
-
 	default:
 		msg = tgbotapi.NewMessage(update.Message.Chat.ID, "error: unknown command.")
 		_, err := bot.Send(msg)

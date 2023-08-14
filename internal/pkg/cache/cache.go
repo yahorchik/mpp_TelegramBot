@@ -17,3 +17,8 @@ func InitCache() {
 	c := cache.New(5*time.Minute, 10*time.Minute)
 	Cache = c
 }
+
+/*func (lc Cache) InitCache() *cache.Cache {
+	lc.c = cache.New(5*time.Minute, 10*time.Minute)
+	return lc.c
+}*/

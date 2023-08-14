@@ -16,11 +16,7 @@ import (
 )
 
 func ShowMessage(id int64, update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
-	//	userID := make([]string, 1)
-	//	messageText := make([]string, 1)
-	//	messageDate := make([]time.Time, 1)
 	var modelsMessages []*model.MessageInfo
-	//	var modelsUser model.UserInfo
 	var msg tgbotapi.MessageConfig
 	modelUser := &model.UserInfo{
 		UserID:        strconv.FormatInt(id, 10),
@@ -30,17 +26,25 @@ func ShowMessage(id int64, update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 	}
 	if lc.Cache.ItemCount() == 0 {
 		msg = tgbotapi.NewMessage(id, "Сохраненных сообщений нет.")
+		_, err := bot.Send(msg)
+		if err != nil {
+			log.Println(err)
+		}
+		return nil
 	}
 	msg = tgbotapi.NewMessage(id, "История сохраненных сообщений:")
 	_, err := bot.Send(msg)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	var msgtext string
-	for _, item := range lc.Cache.Items() {
+	for key, item := range lc.Cache.Items() {
 		minfo, ok := item.Object.(lc.Message)
 		if !ok {
-			log.Fatal()
+			log.Println(err)
+		}
+		if minfo.User != id {
+			continue
 		}
 		tm := time.Unix(int64(minfo.Data), 0)
 		timeStr := tm.Format("2006-01-02T15:04:05")
@@ -49,21 +53,19 @@ func ShowMessage(id int64, update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 		msg = tgbotapi.NewMessage(id, msgtext)
 		_, err := bot.Send(msg)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 		md := &model.MessageInfo{
 			UserID:      proto.String(strconv.FormatInt(minfo.User, 10)),
 			MessageText: proto.String(minfo.Text),
 			MessageDate: &tm,
 		}
+		lc.Cache.Delete(key)
 		modelsMessages = append(modelsMessages, md)
 	}
 	err = rep.SendToDB(modelUser, modelsMessages)
 	if err != nil {
-		log.Fatal(err)
-	}
-	for key, _ := range lc.Cache.Items() {
-		lc.Cache.Delete(key)
+		log.Println(err)
 	}
 	return nil
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
-	"log"
 )
 
 var Cfg *Config
@@ -13,11 +12,11 @@ func SetupConfig() error {
 	buf := &Config{}
 	var data, err = ioutil.ReadFile("config.yaml")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	err = yaml.Unmarshal(data, buf)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	Cfg = buf
 	return nil

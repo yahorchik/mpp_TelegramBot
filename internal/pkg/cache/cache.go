@@ -5,20 +5,23 @@ import (
 	"time"
 )
 
-var Cache *cache.Cache
+//var Cache *cache.Cache
+//
+//type Message struct {
+//	Data int
+//	Text string
+//	User int64
+//}
 
-type Message struct {
-	Data int
-	Text string
-	User int64
+type Cache struct {
+	C *cache.Cache
 }
 
-func InitCache() {
-	c := cache.New(5*time.Minute, 10*time.Minute)
-	Cache = c
-}
+const (
+	defaultExpirationInterval = 5 * time.Minute
+	defaultCleanupInterval    = 10 * time.Minute
+)
 
-/*func (lc Cache) InitCache() *cache.Cache {
-	lc.c = cache.New(5*time.Minute, 10*time.Minute)
-	return lc.c
-}*/
+func InitCache() *Cache {
+	return &Cache{C: cache.New(defaultExpirationInterval, defaultCleanupInterval)}
+}

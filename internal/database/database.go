@@ -2,17 +2,23 @@ package database
 
 import (
 	"database/sql"
-	_ "github.com/lib/pq"
+	"fmt"
 	"github.com/yahorchik/mpp_TelegramBot/internal/pkg/config"
+	"log"
 )
 
-var DB *sql.DB
+type DBconn struct {
+	DB *sql.DB
+}
 
-func ConnectDB() error {
-	conn, err := sql.Open("postgres", config.Cfg.DB.GetUrl())
+func ConnectDB(cfg *config.Config) (*DBconn, error) {
+	//	conn, err := sql.Open("postgres", config.Cfg.DB.GetUrl())
+	conn, err := sql.Open("postgres", cfg.DB.GetUrl())
 	if err != nil {
-		return err
+		err = fmt.Errorf("failed on sql.Open: %w", err)
+		log.Printf("database.ConnectDB: %v", err)
+		return nil, err
 	}
-	DB = conn
-	return nil
+
+	return &DBconn{DB: conn}, nil
 }

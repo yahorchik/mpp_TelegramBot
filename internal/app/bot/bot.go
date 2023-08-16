@@ -1,7 +1,11 @@
 package bot
 
 import (
+	"context"
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/yahorchik/mpp_TelegramBot/internal/database"
+	lc "github.com/yahorchik/mpp_TelegramBot/internal/pkg/cache"
 	eCache "github.com/yahorchik/mpp_TelegramBot/internal/pkg/events/cache"
 	"github.com/yahorchik/mpp_TelegramBot/internal/pkg/events/start"
 	"github.com/yahorchik/mpp_TelegramBot/internal/pkg/repositories"
@@ -9,20 +13,21 @@ import (
 
 type Message struct {
 	Data int
-	text string
-	user int64
+	Text string
+	User int64
 }
 
-func InitBot(token string) (*tgbotapi.BotAPI, error) {
-	bot, err := tgbotapi.NewBotAPI(token)
+func InitBot(botToken string) (*tgbotapi.BotAPI, error) {
+	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
-		return bot, err
+
+		return nil, err
 	}
 	bot.Debug = false
 	return bot, nil
 }
 
-func SearchUpdate(bot *tgbotapi.BotAPI) error {
+func SearchUpdate(ctx context.Context, bot *tgbotapi.BotAPI, c *lc.Cache, dbconn *database.DBconn) error {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 	updates, err := bot.GetUpdatesChan(u)
@@ -31,7 +36,7 @@ func SearchUpdate(bot *tgbotapi.BotAPI) error {
 	}
 	for update := range updates {
 		if update.Message != nil { // If we got a message
-			err := FindMessage(update, bot)
+			err := FindMessage(ctx, update, bot, c, dbconn)
 			if err != nil {
 				return err
 			}
@@ -40,15 +45,16 @@ func SearchUpdate(bot *tgbotapi.BotAPI) error {
 	return nil
 }
 
-func FindMessage(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
+func FindMessage(ctx context.Context, update tgbotapi.Update, bot *tgbotapi.BotAPI, c *lc.Cache, dbconn *database.DBconn) error {
 	var msg tgbotapi.MessageConfig
 	if update.Message.IsCommand() == true {
-		err := findCommand(update, bot)
+		err := findCommand(ctx, update, bot, c, dbconn)
 		if err != nil {
 			return err
 		}
 	} else {
-		err := eCache.MsgToCache(update.Message)
+		fmt.Println(&c)
+		err := eCache.MsgToCache(update.Message, c)
 		if err != nil {
 			return err
 		}
@@ -61,13 +67,13 @@ func FindMessage(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 	return nil
 }
 
-func findCommand(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
+func findCommand(ctx context.Context, update tgbotapi.Update, bot *tgbotapi.BotAPI, c *lc.Cache, dbconn *database.DBconn) error {
 	var msg tgbotapi.MessageConfig
 	switch update.Message.Command() {
 	case "start":
-		start.StartMessage(update.Message.Chat.ID, bot)
+		start.Message(update.Message.Chat.ID, bot)
 	case "cache":
-		err := eCache.ShowMessage(update.Message.Chat.ID, update, bot)
+		err := eCache.ShowMessage(ctx, update.Message.Chat.ID, update, bot, c, dbconn)
 		if err != nil {
 			return err
 		}
@@ -77,7 +83,7 @@ func findCommand(update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 		if err != nil {
 			return err
 		}
-		repositories.GetForDB()
+		repositories.GetForDB(ctx, *dbconn)
 	default:
 		msg = tgbotapi.NewMessage(update.Message.Chat.ID, "error: unknown command.")
 		_, err := bot.Send(msg)

@@ -1,10 +1,12 @@
 package cache
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/patrickmn/go-cache"
+	"github.com/yahorchik/mpp_TelegramBot/internal/database"
 	lc "github.com/yahorchik/mpp_TelegramBot/internal/pkg/cache"
 	rep "github.com/yahorchik/mpp_TelegramBot/internal/pkg/repositories"
 	"github.com/yahorchik/mpp_TelegramBot/internal/pkg/repositories/gen/postgres/public/model"
@@ -15,8 +17,13 @@ import (
 	"time"
 )
 
-func ShowMessage(id int64, update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
-	var modelsMessages []*model.MessageInfo
+type Message struct {
+	Data int
+	Text string
+	User int64
+}
+
+func ShowMessage(ctx context.Context, id int64, update tgbotapi.Update, bot *tgbotapi.BotAPI, c *lc.Cache, dbconn *database.DBconn) error {
 	var msg tgbotapi.MessageConfig
 	modelUser := &model.UserInfo{
 		UserID:        strconv.FormatInt(id, 10),
@@ -24,7 +31,7 @@ func ShowMessage(id int64, update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 		UserFirstname: &update.Message.Chat.FirstName,
 		UserLastname:  &update.Message.Chat.LastName,
 	}
-	if lc.Cache.ItemCount() == 0 {
+	if c.C.ItemCount() == 0 {
 		msg = tgbotapi.NewMessage(id, "Сохраненных сообщений нет.")
 		_, err := bot.Send(msg)
 		if err != nil {
@@ -38,11 +45,21 @@ func ShowMessage(id int64, update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 		log.Println(err)
 	}
 	var msgtext string
-	for key, item := range lc.Cache.Items() {
-		minfo, ok := item.Object.(lc.Message)
+	modelsMessages := make([]*model.MessageInfo, 0, len(c.C.Items()))
+
+	items := c.C.Items()
+	for key, item := range items {
+		minfo, ok := item.Object.(Message)
 		if !ok {
 			log.Println(err)
 		}
+
+		//x, _ := c.C.Get(key)
+		//minfo, ok := x.(Message)
+		//if !ok {
+		//	log.Println("aboba")
+		//}
+
 		if minfo.User != id {
 			continue
 		}
@@ -60,25 +77,35 @@ func ShowMessage(id int64, update tgbotapi.Update, bot *tgbotapi.BotAPI) error {
 			MessageText: proto.String(minfo.Text),
 			MessageDate: &tm,
 		}
-		lc.Cache.Delete(key)
+		c.C.Delete(key)
 		modelsMessages = append(modelsMessages, md)
 	}
-	err = rep.SendToDB(modelUser, modelsMessages)
+
+	err = rep.SendToDB(ctx, modelUser, modelsMessages, dbconn)
 	if err != nil {
 		log.Println(err)
 	}
 	return nil
 }
-func MsgToCache(msg *tgbotapi.Message) error {
-	var message lc.Message
+
+func MsgToCache(msg *tgbotapi.Message, c *lc.Cache) error {
+	var message Message
 	key, err := exec.Command("uuidgen").Output()
 	if err != nil {
-		return err
+		//	return nil, err
+		fmt.Println("JOPA AHAHAHAHAH")
 	}
 	message.Data = msg.Date
 	message.Text = msg.Text
 	message.User = msg.Chat.ID
-	lc.Cache.Set(hex.EncodeToString(key), message, cache.DefaultExpiration)
-
+	fmt.Println(&c)
+	c.C.Set(hex.EncodeToString(key), message, cache.DefaultExpiration)
+	for _, item := range c.C.Items() {
+		minfo, ok := item.Object.(Message)
+		if !ok {
+			log.Println(err)
+		}
+		fmt.Println(minfo)
+	}
 	return nil
 }

@@ -4,24 +4,31 @@ import (
 	"context"
 	b "github.com/yahorchik/mpp_TelegramBot/internal/app/bot"
 	"github.com/yahorchik/mpp_TelegramBot/internal/database"
-	"github.com/yahorchik/mpp_TelegramBot/internal/pkg/cache"
+	lc "github.com/yahorchik/mpp_TelegramBot/internal/pkg/cache"
 	"github.com/yahorchik/mpp_TelegramBot/internal/pkg/config"
 )
 
 func Run(ctx context.Context) error {
-	if err := config.SetupConfig(); err != nil {
-		return err
-	}
-	cache.InitCache()
-	err := database.ConnectDB()
+	//Setup app config
+	cfg, err := config.SetupConfig()
 	if err != nil {
 		return err
 	}
-	bot, err := b.InitBot(config.Cfg.BotToken)
+
+	//Init Cache
+	//var cache *lc.Cache
+	cache := lc.InitCache()
+
+	//Connect to DB
+	dbconn, err := database.ConnectDB(cfg)
 	if err != nil {
 		return err
 	}
-	if err := b.SearchUpdate(bot); err != nil {
+	bot, err := b.InitBot(cfg.BotToken)
+	if err != nil {
+		return err
+	}
+	if err := b.SearchUpdate(ctx, bot, cache, dbconn); err != nil {
 		return err
 	}
 	return nil

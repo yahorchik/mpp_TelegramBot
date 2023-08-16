@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	_ "github.com/lib/pq"
 	"github.com/yahorchik/mpp_TelegramBot/internal/app"
 	"log"
 )

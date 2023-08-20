@@ -47,6 +47,6 @@ func SetupConfig() (*Config, error) {
 	return &cfg, nil
 }
 
-func (c *Database) GetUrl() string {
+func (c *Database) GetURL() string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s", c.User, c.Password, c.Host, c.Port, c.DB, c.SSLmod)
 }
